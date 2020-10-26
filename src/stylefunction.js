@@ -488,10 +488,31 @@ export default function (olLayer, glStyle, source, resolutions = defaultResoluti
                                 // ol package and ol-debug.js only
                                 if (geom.getFlatMidpoint || geom.getFlatMidpoints) {
                                     const extent = geom.getExtent();
-                                    const size = Math.sqrt(Math.max(
-                                        Math.pow((extent[2] - extent[0]) / resolution, 2),
-                                        Math.pow((extent[3] - extent[1]) / resolution, 2))
-                                    );
+
+                                    //根据空间参考获取size added by lipeng 2020.9.3
+                                    switch (defaultSRS) {
+                                        case "EPSG:3857":
+                                        case "EPSG:900913":
+                                            size = Math.sqrt(Math.max(Math.pow((extent[2] - extent[0]) / resolution, 2), Math.pow((extent[3] - extent[1]) / resolution, 2)));
+                                            break;
+                                        case "EPSG:4490":
+                                            let p1 = [extent[0], extent[1]],
+                                                p2 = [extent[2], extent[3]],
+                                                fromLonLat = getTransform('EPSG:4490', 'EPSG:3857');
+
+                                            p1 = fromLonLat(p1);
+                                            p2 = fromLonLat(p2);
+
+                                            extent = [p1[0], p1[1], p2[0], p2[1]];
+                                            size = Math.sqrt(Math.max(Math.pow((extent[2] - extent[0]) / resolution, 2), Math.pow((extent[3] - extent[1]) / resolution, 2)));
+                                            break;
+                                    }
+
+                                    // const size = Math.sqrt(Math.max(
+                                    //     Math.pow((extent[2] - extent[0]) / resolution, 2),
+                                    //     Math.pow((extent[3] - extent[1]) / resolution, 2))
+                                    // );
+
                                     if (size > 150) {
                                         //FIXME Do not hard-code a size of 150
                                         const midpoint = geom.getType() === 'MultiLineString' ? geom.getFlatMidpoints() : geom.getFlatMidpoint();
