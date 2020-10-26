@@ -263,10 +263,28 @@ function setBackground(map, layer) {
             element.style.opacity = '';
         }
     }
-    if (map.getTargetElement()) {
+
+    /*
+       if (map.getTargetElement()) {
+           updateStyle();
+       }
+       map.on(['change:resolution', 'change:target'], updateStyle);
+       */
+
+    //modified by lipeng 2020.9.23
+    //这里原作者可能写错了，map不支持change:resolution事件 
+    //同时为targetElement添加属性事件，方便重设样式文件时解绑
+    let targetEle = map.getTargetElement();
+    if (targetEle) {
         updateStyle();
+
+        if (targetEle.event_change_resolution) {
+            map.getView().un('change:resolution', targetEle.event_change_resolution);
+        }
     }
-    map.on(['change:resolution', 'change:target'], updateStyle);
+
+    targetEle.event_change_resolution = updateStyle;
+    map.getView().on('change:resolution', updateStyle);
 }
 
 /**
