@@ -255,7 +255,10 @@ function setBackground(map, layer) {
         if (paint['background-opacity'] !== undefined) {
             element.style.opacity = getValue(background, 'paint', 'background-opacity', zoom, emptyObj);
         }
-        if (layout.visibility == 'none') {
+        // if (layout.visibility == 'none') {
+        //增加背景图层对minzoom、maxzoom的支持 added by lipeng 2020.9.24
+        if (layout.visibility === 'none' || ('minzoom' in layer && zoom < layer.minzoom) ||
+            ('maxzoom' in layer && zoom > layer.maxzoom)) {
             element.style.backgroundColor = '';
             element.style.opacity = '';
         }
