@@ -580,11 +580,24 @@ export default function (olLayer, glStyle, source, resolutions = defaultResoluti
                                         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
                                         for (let c = 0, cc = data.data.length; c < cc; c += 4) {
                                             const a = iconColor.a;
-                                            if (a !== 0) {
-                                                data.data[c] = iconColor.r * 255 / a;
-                                                data.data[c + 1] = iconColor.g * 255 / a;
-                                                data.data[c + 2] = iconColor.b * 255 / a;
+
+                                            //纠正设置icon-color后，icon-image后消失的问题，并过滤掉透明像素 modified by lipeng 2020.9.3
+                                            if (colorData[c] + colorData[c + 1] + colorData[c + 2] + colorData[c + 3] != 0
+                                                && a !== 0) {
+                                                colorData[c] = iconColor.r * 255 / a;
+                                                colorData[c + 1] = iconColor.g * 255 / a;
+                                                colorData[c + 2] = iconColor.b * 255 / a;
+                                                //取透明度最小值可获得更好的颜色转换效果，
+                                                //由于图标原始边缘近乎透明，直接用a * 255导致这些部分变得更清晰，使转换后图标过于圆润，且显得更大。
+                                                colorData[c + 3] = Math.min(colorData[c + 3], a * 255);
                                             }
+
+                                            // if (a !== 0) {
+                                            //     data.data[c] = iconColor.r * 255 / a;
+                                            //     data.data[c + 1] = iconColor.g * 255 / a;
+                                            //     data.data[c + 2] = iconColor.b * 255 / a;
+                                            // }
+
                                             data.data[c + 3] = a;
                                         }
                                         ctx.putImageData(data, 0, 0);
