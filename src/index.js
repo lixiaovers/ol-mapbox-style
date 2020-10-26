@@ -324,12 +324,48 @@ function extentFromTileJSON(tileJSON) {
     }
 }
 
-function setupVectorLayer(glSource, accessToken, url) {
+// function setupVectorLayer(glSource, accessToken, url) {
+/**
+ * 增加glLayers、map参数，用于定义MVT的过滤方法
+ * @param {*} glSource
+ * @param {string} glSourceId 数据源key，用于设置图层ID  added by lipeng 2020.9.23
+ * @param {*} accessToken
+ * @param {*} url
+ * @param {Object} glLayers 样式文件的layers节点
+ * @param {ol/map} map
+ */
+function setupVectorLayer(glSource, glSourceId, accessToken, url, glLayers, map) {
     glSource = assign({}, glSource);
-    const layer = new VectorTileLayer({
-        declutter: true,
-        visible: false
-    });
+
+    //重置 added by lipeng 2020.9.17
+    LayerZoomMap = {};
+
+    //对应用更改的样式，使用之前已存在的图层 modified by lipeng 2020.9.23
+    let counter = 1;
+    if (VectorLayerCounter[glSourceId]) {
+        counter = ++VectorLayerCounter[glSourceId];
+    } else {
+        VectorLayerCounter[glSourceId] = 1;
+    }
+
+    let layerId = [glSourceId, counter].join("_");
+    const layer = getLayerByID(map, layerId);
+    if (layer) {
+        return layer;
+    } else {
+        layer = new VectorTileLayer({
+            declutter: true,
+            visible: false
+        });
+
+        layer.set("id", layerId);
+        layer.set("isStyleCreated", true)
+    }
+
+    // const layer = new VectorTileLayer({
+    //     declutter: true,
+    //     visible: false
+    // });
     const cacheKey = JSON.stringify(glSource);
     let tilejson = tilejsonCache[cacheKey];
     if (!tilejson) {
@@ -357,6 +393,7 @@ function setupVectorLayer(glSource, accessToken, url) {
             const maxZoom = tileJSONDoc.maxzoom || 22;
             let source = tilejson.get('ol-source');
             if (source === undefined) {
+                /*
                 source = new VectorTileSource({
                     attributions: tilejson.getAttributions(),
                     format: new MVT(),
@@ -369,6 +406,61 @@ function setupVectorLayer(glSource, accessToken, url) {
                     }),
                     urls: tiles
                 });
+                */
+
+                //自定义支持4490空间参考 added by lipeng 2020.9.1
+                if (glSource.srs.indexOf("4490") > -1) {
+                    initDefaultResolutions("EPSG:4490");
+                    let proj4490 = getProjection("EPSG:4490");
+
+                    let tileUrlFunction = undefined;
+                    if (tiles.length == 1) {
+                        tileUrlFunction = function (tileCoord) {
+                            let url = tiles[0];
+                            return url.replace("{z}", (tileCoord[0] - 1))
+                                .replace("{x}", tileCoord[1])
+                                .replace("{y}", ((1 << (tileCoord[0] - 1)) - tileCoord[2] - 1));
+                        }
+                    } else {
+                        //FIXME 暂不支持多url的自定义行列号 by lipeng 2020.9.18
+                    }
+
+                    source = new VectorTileSource({
+                        format: new MVT({
+                            //使用过滤器控制只实例化可见图层的要素 added by lipeng 2020.9.16
+                            filter: (function () {
+                                return getMVTFilter(glLayers, map);
+                            })()
+                        }),
+                        crossOrigin: "anonymous",
+                        tileGrid: createXYZ({
+                            extent: proj4490.getExtent(),
+                            minZoom: minZoom,
+                            maxZoom: maxZoom
+                        }),
+                        projection: proj4490,
+                        tileUrlFunction: tileUrlFunction
+                    })
+                } else {//源码，默认3857 空间参考 by lipeng 2020.9.1 
+                    initDefaultResolutions("EPSG:3857");
+                    source = new VectorTileSource({
+                        attributions: tilejson.getAttributions(),
+                        format: new MVT({
+                            //使用过滤器控制只实例化可见图层的要素 added by lipeng 2020.9.16
+                            filter: (function () {
+                                return getMVTFilter(glLayers, map);
+                            })()
+                        }),
+                        tileGrid: new TileGrid({
+                            origin: tileGrid.getOrigin(0),
+                            extent: extent || tileGrid.getExtent(),
+                            minZoom: minZoom,
+                            resolutions: defaultResolutions.slice(0, maxZoom + 1),
+                            tileSize: 512
+                        }),
+                        urls: tiles
+                    });
+                }
                 tilejson.set('ol-source', source);
             }
             unByKey(key);
@@ -385,35 +477,107 @@ function setupVectorLayer(glSource, accessToken, url) {
     return layer;
 }
 
+/**
+ * 记录style文件的layers节点中，各图层在特定zoom下是否可见
+ */
+var LayerZoomMap = {};
+/**
+ * 根据样式文件定义的图层可见级别，过滤图层中MVT.readFeatures的要素实例化
+ * 避免默认所有图层所有要素都实例化导致的内存过高甚至溢出问题
+ * added by lipeng 2020.9.16
+ * @param {Ojbect} glLayers mapbox样式文件中的layers节点
+ * @param {ol.map} map 
+ */
+function getMVTFilter(glLayers, map) {
+    return function (rawFeature) {
+        let lyrName = rawFeature.layer.name,
+            zoom = Math.round(map.getView().getZoom());
+
+        if (!LayerZoomMap[zoom]) {
+            LayerZoomMap[zoom] = {}
+        }
+
+        let layerZoom = LayerZoomMap[zoom][lyrName];
+
+        if (typeof layerZoom !== "undefined") {
+            return layerZoom;
+        } else {
+            layerZoom = LayerZoomMap[zoom][lyrName] = false;
+        }
+
+        let srcLyrName = void 0,
+            isAddLayerFeature = false,
+            minZoom,
+            maxZoom;
+        for (const key in glLayers) {
+            const glLayer = glLayers[key];
+            srcLyrName = glLayer["source-layer"];
+            if (srcLyrName !== lyrName) {
+                continue;
+            }
+
+            if (!glLayer.layout || glLayer.layout.visibility !== "none") {
+                minZoom = 'minzoom' in glLayer ? glLayer.minzoom : 0;
+                maxZoom = 'maxzoom' in glLayer ? glLayer.maxzoom : 24;
+
+                isAddLayerFeature = (zoom >= minZoom && zoom <= maxZoom);
+
+                if (isAddLayerFeature) break;
+            }
+        }
+        return layerZoom = LayerZoomMap[zoom][lyrName] = isAddLayerFeature;
+    }
+}
+
 function setupRasterLayer(glSource, url) {
     const layer = new TileLayer();
-    const source = new TileJSON({
+    // const source = new TileJSON({
+    //     transition: 0,
+    //     url: glSource.tiles ? undefined : url,
+    //     tileJSON: glSource.tiles ? glSource : undefined,
+    //     crossOrigin: 'anonymous'
+    // });
+
+    //使raster图层支持其他空间参考，如：4490等 added by lipeng 2020.9.21
+    let proj = getProjection("EPSG:3857");
+    if (glSource.srs.indexOf("4490") > -1) {
+        initDefaultResolutions("EPSG:4490");
+        proj = getProjection("EPSG:4490");
+    }
+
+    var source = new TileJSON({
         transition: 0,
         url: glSource.tiles ? undefined : url,
         tileJSON: glSource.tiles ? glSource : undefined,
-        crossOrigin: 'anonymous'
+        crossOrigin: 'anonymous',
+        projection: proj  // added by lipeng 2020.9.21
     });
+
     const key = source.on('change', function () {
         const state = source.getState();
         if (state === 'ready') {
             unByKey(key);
-            const tileJSONDoc = /** @type {Object} */ (source.getTileJSON());
-            const extent = extentFromTileJSON(tileJSONDoc);
-            const tileGrid = source.getTileGrid();
-            const tileSize = glSource.tileSize || tileJSONDoc.tileSize || 512;
-            const minZoom = tileJSONDoc.minzoom || 0;
-            const maxZoom = tileJSONDoc.maxzoom || 22;
-            // Only works when using ES modules
-            source.tileGrid = new TileGrid({
-                origin: tileGrid.getOrigin(0),
-                extent: extent || tileGrid.getExtent(),
-                minZoom: minZoom,
-                resolutions: createXYZ({
-                    maxZoom: maxZoom,
+
+            //对非3857空间参考，不使用下面重建TileGrid的代码 modified by lipeng 2020.9.21
+            if (glSource.srs.indexOf("3857") > -1) {
+                const tileJSONDoc = /** @type {Object} */ (source.getTileJSON());
+                const extent = extentFromTileJSON(tileJSONDoc);
+                const tileGrid = source.getTileGrid();
+                const tileSize = glSource.tileSize || tileJSONDoc.tileSize || 512;
+                const minZoom = tileJSONDoc.minzoom || 0;
+                const maxZoom = tileJSONDoc.maxzoom || 22;
+                // Only works when using ES modules
+                source.tileGrid = new TileGrid({
+                    origin: tileGrid.getOrigin(0),
+                    extent: extent || tileGrid.getExtent(),
+                    minZoom: minZoom,
+                    resolutions: createXYZ({
+                        maxZoom: maxZoom,
+                        tileSize: tileSize
+                    }).getResolutions(),
                     tileSize: tileSize
-                }).getResolutions(),
-                tileSize: tileSize
-            });
+                });
+            }
             layer.setSource(source);
         } else if (state === 'error') {
             unByKey(key);
@@ -432,13 +596,33 @@ function setupRasterLayer(glSource, url) {
 }
 
 const geoJsonFormat = new GeoJSON();
-function setupGeoJSONLayer(glSource, path) {
+// function setupGeoJSONLayer(glSource, path) { modified by lipeng 2020.9.23
+function setupGeoJSONLayer(glSource, glSourceId, path, map) {
     const data = glSource.data;
     let features, geoJsonUrl;
+
+    //对应用更改的样式，使用之前已存在的图层 modified by lipeng 2020.9.23
+    let counter = 1;
+    if (VectorLayerCounter[glSourceId]) {
+        counter = ++VectorLayerCounter[glSourceId];
+    } else {
+        VectorLayerCounter[glSourceId] = 1;
+    }
+
+    let layerId = [glSourceId, counter].join("_");
+    var layer = getLayerByID(map, layerId);
+    if (layer) {
+        return layer;
+    }
+
     if (typeof data == 'string') {
         geoJsonUrl = withPath(data, path);
     } else {
-        features = geoJsonFormat.readFeatures(data, { featureProjection: 'EPSG:3857' });
+        // features = geoJsonFormat.readFeatures(data, { featureProjection: 'EPSG:3857' });
+
+        //使geojson支持3857外的其他空间参考 modified by lipeng 2020.9.21
+        let srs = glSource.srs || "EPSG:3857";
+        features = geoJsonFormat.readFeatures(data, { featureProjection: srs });
     }
     return new VectorLayer({
         source: new VectorSource({
@@ -457,7 +641,21 @@ function updateRasterLayerProperties(glLayer, layer, view) {
     layer.setOpacity(opacity);
 }
 
+//矢量图层计数器，并保存了矢量图层的数组，用于应用修改后样式时，重用/删除废弃图层
+//added by lipeng 2020.9.23
+let VectorLayerCounter = {
+    layers: []
+}
+
 function processStyle(glStyle, map, baseUrl, host, path, accessToken) {
+    //触发自定义mapbox-style-applied事件，并将style存储在事件对象中 added by lipeng 2020.9.11
+    map.dispatchEvent(new MapEvent("mapbox-style-applied", map, glStyle));
+
+    //初始化矢量图层计数器 added by lipeng 2020.9.23
+    VectorLayerCounter = {
+        layers: []
+    }
+
     const promises = [];
     let view = map.getView();
     if (!view.isDef() && !view.getRotation() && !view.getResolutions()) {
@@ -488,6 +686,10 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken) {
     }
 
     const glLayers = glStyle.layers;
+
+    //修改样式json时，删除不存在图层 modified by lipeng 2020.9.23
+    removeUnExistLayer(map, glLayers);
+
     let layerIds = [];
 
     let glLayer, glSource, glSourceId, id, layer, url;
@@ -523,14 +725,36 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken) {
 
 
                 if (glSource.type == 'vector') {
-                    layer = setupVectorLayer(glSource, accessToken, url);
+                    // layer = setupVectorLayer(glSource, accessToken, url);
+                    //增加数据源key作为参数  modified by lipeng 2020.9.23
+                    layer = setupVectorLayer(glSource, id, accessToken, url, glStyle.layers, map);
                 } else if (glSource.type == 'raster') {
-                    layer = setupRasterLayer(glSource, url);
+                    // layer = setupRasterLayer(glSource, url);
+
+                    //对已存在、初始创建两种情况分别设置 modified by lipeng 2020.9.23
+                    layer = getLayerByID(map, glLayer.id);
+                    if (!layer) {
+                        layer = setupRasterLayer(glSource, url);
+                        layer.set("id", glLayer.id);
+                        layer.set('isStyleCreated', true);
+                    } else {
+                        view.un('change:resolution', layer.get("event_change_resolution"));
+                    }
+
                     layer.setVisible(glLayer.layout ? glLayer.layout.visibility !== 'none' : true);
-                    view.on('change:resolution', updateRasterLayerProperties.bind(this, glLayer, layer, view));
+
+                    // view.on('change:resolution', updateRasterLayerProperties.bind(this, glLayer, layer, view));
+
+                    //将事件回调保存在layer属性中，方便下次应用修改样式时解绑 modified by lipeng 2020.9.23
+                    let callback = updateRasterLayerProperties.bind(this_1, glLayer, layer, view);
+                    layer.set('event_change_resolution', callback);
+                    view.on('change:resolution', callback);
+
                     updateRasterLayerProperties(glLayer, layer, view);
                 } else if (glSource.type == 'geojson') {
-                    layer = setupGeoJSONLayer(glSource, path);
+                    // layer = setupGeoJSONLayer(glSource, path); 
+                    //modified by lipeng 2020.9.23
+                    layer = setupGeoJSONLayer(glSource, id, path, map);
                 }
                 glSourceId = id;
                 if (layer) {
@@ -543,6 +767,59 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken) {
     promises.push(finalizeLayer(layer, layerIds, glStyle, path, map));
     map.set('mapbox-style', glStyle);
     return Promise.all(promises);
+}
+
+/**
+ * @description 从地图中删除已经不存在于glLayers中的图层
+ * @param {ol.Map} map 
+ * @param {Array} glLayers 
+ * @author lipeng
+ * @since 2020.9.23
+ */
+function removeUnExistLayer(map, glLayers) {
+    let layers = map.getLayers(),
+        idTemp = void 0,
+        isStyleCreated = false,
+        isExist = false,
+        layerTemp = void 0;
+    for (let i = 0; i < layers.length; i++) {
+        layerTemp = layers[i];
+        idTemp = layerTemp.get("id");
+        isStyleCreated = layerTemp.get('isStyleCreated');
+        if (isStyleCreated === false || !idTemp) {
+            continue;
+        }
+
+        isExist = false;
+        for (const glLayer of glLayers) {
+            if (idTemp === glLayer.id) {
+                isExist = true;
+            }
+        }
+
+        if (!isExist) {
+            if (layerTemp instanceof TileLayer) {
+                map.getView().un('change:resolution', layerTemp.get("event_change_resolution"));
+            }
+            map.removeLayer(layerTemp);
+        }
+    }
+}
+
+/**
+ * @description 根据样式文件中图层id获取map中已创建的图层
+ * @param {ol.Map} map 
+ * @param {string} layerID 
+ * @author lipeng
+ * @since 2020.9.23
+ */
+function getLayerByID(map, layerID) {
+    let layers = map.getLayers().getArray();
+    for (let i = 0, len = layers.length; i < len; i++) {
+        if (layers[i].get("id") === layerID && layers[i].get("isStyleCreated")) {
+            return layers[i];
+        }
+    }
 }
 
 /**
@@ -724,7 +1001,9 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
                 }
             }
             if (source instanceof VectorSource || source instanceof VectorTileSource) {
-                applyStyle(/** @type {import("ol/layer/Vector").default|import("ol/layer/VectorTile").default} */(layer), glStyle, layerIds, path).then(function () {
+                // applyStyle(/** @type {import("ol/layer/Vector").default|import("ol/layer/VectorTile").default} */(layer), glStyle, layerIds, path).then(function () {
+                //增加map参数 modified by lipeng 2020.10.15
+                applyStyle(/** @type {import("ol/layer/Vector").default|import("ol/layer/VectorTile").default} */(layer), glStyle, layerIds, path, undefined, map).then(function () {
                     layer.setVisible(true);
                     resolve();
                 }, function (e) {
