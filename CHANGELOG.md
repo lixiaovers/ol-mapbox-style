@@ -115,11 +115,11 @@ v4.1.0 brings a few performance improvements and bug fixes:
 
 The way how we handle `zoom`, `minzoom` and `maxzoom` throughout the library has been reworked:
 
-* When ol-mapbox-style creates an `ol/View` instance, it will be configured with the zoom level range that mapbox-gl uses. When updating from previous versions, you will notice that the zoom levels of the OpenLayers view will now match those in the Mapbox Style object. Previously OpenLayers zoom levels were higher by 1.
+* When ol-mapbox-style creates an `ol-zhyt/View` instance, it will be configured with the zoom level range that mapbox-gl uses. When updating from previous versions, you will notice that the zoom levels of the OpenLayers view will now match those in the Mapbox Style object. Previously OpenLayers zoom levels were higher by 1.
 * When a Mapbox Style object is configured with a `zoom`, the zoom level will now be interpreted like in mapbox-gl, i.e. you will be zoomed in one level deeper than before the update.
 * `minzoom` and `maxzoom` on a Mapbox Style layer were previously determined by the tile size of the underlying source. For raster sources with a tile size of 256, this means that `minzoom` and `maxzoom` are zoomed in one level deeper than before the update. For sources with a tile size of 512, nothing changes.
-* `minzoom` and `maxzoom` on a Mapbox Style source now influence the `ol/tilegrid/TileGrid` that ol-mapbox-style creates for a source in a different way. The resolutions will always match mapbox-gl default zoom levels.
-* `minzoom` and `maxzoom` on Mapbox Style layers no longer  influences whether the `ol/layer/Layer` instance is  set `visible` at a certain resolution. Instead, the layer's `maxResolution` and `minResolution` are set.
+* `minzoom` and `maxzoom` on a Mapbox Style source now influence the `ol-zhyt/tilegrid/TileGrid` that ol-mapbox-style creates for a source in a different way. The resolutions will always match mapbox-gl default zoom levels.
+* `minzoom` and `maxzoom` on Mapbox Style layers no longer  influences whether the `ol-zhyt/layer/Layer` instance is  set `visible` at a certain resolution. Instead, the layer's `maxResolution` and `minResolution` are set.
 
 ### Other changes
 
@@ -184,7 +184,7 @@ The way how we handle `zoom`, `minzoom` and `maxzoom` throughout the library has
 
 * Improve docs, error handling and tests
 * Stop using empty layer ids for `finalizeLayer()`
-* Add default export that returns a `Promise` instead of an `ol/Map` instance
+* Add default export that returns a `Promise` instead of an `ol-zhyt/Map` instance
 * Make layer ids for background unique
 * Handle errors for unavailable TileJSON sources
 * Factor out functions from `processStyle`'s monster loop
@@ -207,7 +207,7 @@ The way how we handle `zoom`, `minzoom` and `maxzoom` throughout the library has
 
 ## 3.0.0
 
-* Add `mapbox-style` property to the `ol/Map` instance
+* Add `mapbox-style` property to the `ol-zhyt/Map` instance
 * Add `getSource()` and `getLayer()` helper functions
 * Move examples to ES6
 * Allow users to specify custom resolutions
@@ -354,7 +354,7 @@ With version 2.x, ol-mapbox-style switched to the [`ol`](https://npmjs.com/packa
 If switching to `ol` is not yet desired, it is still possible to use ol-mapbox-style with the `openlayers` package, with the help of [`standalonify`](https://www.npmjs.com/package/standalonify). You have to require OpenLayers as `global.ol = require('openlayers');`. To build the bundle, use a command like the following:
 
 ``` sh
-$ node_modules/.bin/browserify -g [ babelify --plugins [ transform-es2015-modules-commonjs ] ]  -p [ standalonify --name null --deps [ null --ol/style/style ol.style.Style --ol/style/fill ol.style.Fill --ol/style/stroke ol.style.Stroke --ol/style/circle ol.style.Circle --ol/style/icon ol.style.Icon --ol/style/text ol.style.Text ] ] example/index.js > example/bundle.js
+$ node_modules/.bin/browserify -g [ babelify --plugins [ transform-es2015-modules-commonjs ] ]  -p [ standalonify --name null --deps [ null --ol-zhyt/style/style ol.style.Style --ol-zhyt/style/fill ol.style.Fill --ol-zhyt/style/stroke ol.style.Stroke --ol-zhyt/style/circle ol.style.Circle --ol-zhyt/style/icon ol.style.Icon --ol-zhyt/style/text ol.style.Text ] ] example/index.js > example/bundle.js
 ```
 
 ### `getStyleFunction` moved to separate mapbox-to-ol-style package

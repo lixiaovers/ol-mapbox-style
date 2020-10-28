@@ -4,13 +4,13 @@ Copyright 2016-present ol-mapbox-style contributors
 License: https://raw.githubusercontent.com/openlayers/ol-mapbox-style/master/LICENSE
 */
 
-import Style from 'ol/style/Style';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
-import Icon from 'ol/style/Icon';
-import Text from 'ol/style/Text';
-import Circle from 'ol/style/Circle';
-import RenderFeature from 'ol/render/Feature';
+import Style from 'ol-zhyt/style/Style';
+import Fill from 'ol-zhyt/style/Fill';
+import Stroke from 'ol-zhyt/style/Stroke';
+import Icon from 'ol-zhyt/style/Icon';
+import Text from 'ol-zhyt/style/Text';
+import Circle from 'ol-zhyt/style/Circle';
+import RenderFeature from 'ol-zhyt/render/Feature';
 import { derefLayers } from '@mapbox/mapbox-gl-style-spec';
 
 import {
@@ -23,9 +23,9 @@ import mb2css from 'mapbox-to-css-font';
 import { deg2rad, defaultResolutions, getZoomForResolution, wrapText, applyLetterSpacing, createCanvas } from './util';
 
 /**
- * @typedef {import("ol/layer/Vector").default} VectorLayer
- * @typedef {import("ol/layer/VectorTile").default} VectorTileLayer
- * @typedef {import("ol/style/Style").StyleFunction} StyleFunction
+ * @typedef {import("ol-zhyt/layer/Vector").default} VectorLayer
+ * @typedef {import("ol-zhyt/layer/VectorTile").default} VectorTileLayer
+ * @typedef {import("ol-zhyt/style/Style").StyleFunction} StyleFunction
  */
 
 const isFunction = fn.isFunction;

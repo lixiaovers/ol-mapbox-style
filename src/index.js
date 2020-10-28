@@ -7,27 +7,29 @@ License: https://raw.githubusercontent.com/openlayers/ol-mapbox-style/master/LIC
 import mb2css from 'mapbox-to-css-font';
 import applyStyleFunction, { getValue } from './stylefunction';
 import googleFonts from 'webfont-matcher/lib/fonts/google';
-import { fromLonLat } from 'ol/proj';
-import { createXYZ } from 'ol/tilegrid';
-import TileGrid from 'ol/tilegrid/TileGrid';
-import Map from 'ol/Map';
-import View from 'ol/View';
-import GeoJSON from 'ol/format/GeoJSON';
-import MVT from 'ol/format/MVT';
-import { unByKey } from 'ol/Observable';
-import TileLayer from 'ol/layer/Tile';
-import VectorLayer from 'ol/layer/Vector';
-import VectorTileLayer from 'ol/layer/VectorTile';
-import TileJSON from 'ol/source/TileJSON';
-import VectorSource from 'ol/source/Vector';
-import VectorTileSource from 'ol/source/VectorTile';
+import { fromLonLat } from 'ol-zhyt/proj';
+import { createXYZ } from 'ol-zhyt/tilegrid';
+import TileGrid from 'ol-zhyt/tilegrid/TileGrid';
+import Map from 'ol-zhyt/Map';
+import View from 'ol-zhyt/View';
+import GeoJSON from 'ol-zhyt/format/GeoJSON';
+import MVT from 'ol-zhyt/format/MVT';
+import { unByKey } from 'ol-zhyt/Observable';
+import TileLayer from 'ol-zhyt/layer/Tile';
+import VectorLayer from 'ol-zhyt/layer/Vector';
+import VectorTileLayer from 'ol-zhyt/layer/VectorTile';
+import TileJSON from 'ol-zhyt/source/TileJSON';
+import VectorSource from 'ol-zhyt/source/Vector';
+import VectorTileSource from 'ol-zhyt/source/VectorTile';
 import { Color } from '@mapbox/mapbox-gl-style-spec';
-import { assign, defaultResolutions } from './util';
+import { assign, defaultResolutions, initDefaultResolutions } from './util';
+import { get as getProjection } from 'ol-zhyt/proj'
+import MapEvent from 'ol-zhyt/MapEvent';
 
 /**
- * @typedef {import("ol/Map").default} PluggableMap
- * @typedef {import("ol/layer/Layer").default} Layer
- * @typedef {import("ol/source/Source").default} Source
+ * @typedef {import("ol-zhyt/Map").default} PluggableMap
+ * @typedef {import("ol-zhyt/layer/Layer").default} Layer
+ * @typedef {import("ol-zhyt/source/Source").default} Source
  * @private
  */
 
@@ -141,7 +143,7 @@ function toSpriteUrl(url, path, extension) {
  * @param {string} [path=undefined] Path of the style file. Only required when
  * a relative path is used with the `"sprite"` property of the style.
  * @param {Array<number>} [resolutions=undefined] Resolutions for mapping resolution to zoom level.
- * @param {ol/Map} map 地图对象，供往外传递获取的精灵图信息. added by lipeng 2020.10.15
+ * @param {ol-zhyt/Map} map 地图对象，供往外传递获取的精灵图信息. added by lipeng 2020.10.15
  * @return {Promise} Promise which will be resolved when the style can be used
  * for rendering.
  */
@@ -332,7 +334,7 @@ function extentFromTileJSON(tileJSON) {
  * @param {*} accessToken
  * @param {*} url
  * @param {Object} glLayers 样式文件的layers节点
- * @param {ol/map} map
+ * @param {ol-zhyt/map} map
  */
 function setupVectorLayer(glSource, glSourceId, accessToken, url, glLayers, map) {
     glSource = assign({}, glSource);
@@ -589,7 +591,7 @@ function setupRasterLayer(glSource, url) {
             const bbox = source.getTileGrid().getTileCoordExtent(tile.getTileCoord());
             src = src.replace('{bbox-epsg-3857}', bbox.toString());
         }
-        const img = /** @type {import("ol/ImageTile").default} */ (tile).getImage();
+        const img = /** @type {import("ol-zhyt/ImageTile").default} */ (tile).getImage();
     /** @type {HTMLImageElement} */ (img).src = src;
     });
     return layer;
@@ -746,7 +748,7 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken) {
                     // view.on('change:resolution', updateRasterLayerProperties.bind(this, glLayer, layer, view));
 
                     //将事件回调保存在layer属性中，方便下次应用修改样式时解绑 modified by lipeng 2020.9.23
-                    let callback = updateRasterLayerProperties.bind(this_1, glLayer, layer, view);
+                    let callback = updateRasterLayerProperties.bind(this, glLayer, layer, view);
                     layer.set('event_change_resolution', callback);
                     view.on('change:resolution', callback);
 
@@ -925,7 +927,7 @@ export default function olms(map, style) {
  * ```js
  * import {apply} from 'ol-mapbox-style';
  * ```
- * Like `olms`, but returns an `ol/Map` instance instead of a `Promise`.
+ * Like `olms`, but returns an `ol-zhyt/Map` instance instead of a `Promise`.
  *
  * @param {PluggableMap|HTMLElement|string} map Either an existing OpenLayers Map
  * instance, or a HTML element, or the id of a HTML element that will be the
@@ -1003,9 +1005,9 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
                 }
             }
             if (source instanceof VectorSource || source instanceof VectorTileSource) {
-                // applyStyle(/** @type {import("ol/layer/Vector").default|import("ol/layer/VectorTile").default} */(layer), glStyle, layerIds, path).then(function () {
+                // applyStyle(/** @type {import("ol-zhyt/layer/Vector").default|import("ol-zhyt/layer/VectorTile").default} */(layer), glStyle, layerIds, path).then(function () {
                 //增加map参数 modified by lipeng 2020.10.15
-                applyStyle(/** @type {import("ol/layer/Vector").default|import("ol/layer/VectorTile").default} */(layer), glStyle, layerIds, path, undefined, map).then(function () {
+                applyStyle(/** @type {import("ol-zhyt/layer/Vector").default|import("ol-zhyt/layer/VectorTile").default} */(layer), glStyle, layerIds, path, undefined, map).then(function () {
                     layer.setVisible(true);
                     resolve();
                 }, function (e) {

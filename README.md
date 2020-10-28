@@ -34,9 +34,9 @@ To create a style function for individual OpenLayers vector or vector tile layer
 ```js
 import stylefunction from 'ol-mapbox-style/stylefunction';
 // OpenLayers imports from https://npmjs.com/package/ol
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import GeoJSON from 'ol/format/GeoJSON';
+import VectorLayer from 'ol-zhyt/layer/Vector';
+import VectorSource from 'ol-zhyt/source/Vector';
+import GeoJSON from 'ol-zhyt/format/GeoJSON';
 
 var layer = new VectorLayer({
   source: new VectorSource({
@@ -123,7 +123,7 @@ Two additional properties will be set on the provided layer:
 -   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of the style file. Only required when
     a relative path is used with the `"sprite"` property of the style. (optional, default `undefined`)
 -   `resolutions` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Resolutions for mapping resolution to zoom level. (optional, default `undefined`)
--   `map` **ol/Map** 地图对象，供往外传递获取的精灵图信息. added by lipeng 2020.10.15
+-   `map` **ol-zhyt/Map** 地图对象，供往外传递获取的精灵图信息. added by lipeng 2020.10.15
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** Promise which will be resolved when the style can be used
 for rendering.
@@ -269,7 +269,7 @@ argument.
 import {apply} from 'ol-mapbox-style';
 ```
 
-Like `olms`, but returns an `ol/Map` instance instead of a `Promise`.
+Like `olms`, but returns an `ol-zhyt/Map` instance instead of a `Promise`.
 
 #### Parameters
 

@@ -8,8 +8,8 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "ol": ["node_modules/ol/src"],
-      "ol/*": ["node_modules/ol/src/*"]
+      "ol": ["node_modules/ol-zhyt/src"],
+      "ol-zhyt/*": ["node_modules/ol-zhyt/src/*"]
     },
     "lib": [
       "es2015",
@@ -19,6 +19,6 @@
   },
   "include": [
     "src/**/*.js",
-    "node_modules/ol/src/**/*.js"
+    "node_modules/ol-zhyt/src/**/*.js"
   ]
 }

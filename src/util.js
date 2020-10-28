@@ -1,6 +1,6 @@
-import { listen } from 'ol/events';
-import EventType from 'ol/events/EventType';
-import { labelCache } from 'ol/render/canvas';
+import { listen } from 'ol-zhyt/events';
+import EventType from 'ol-zhyt/events/EventType';
+import { labelCache } from 'ol-zhyt/render/canvas';
 
 /**
  * Polyfill for Object.assign().  Assigns enumerable and own properties from

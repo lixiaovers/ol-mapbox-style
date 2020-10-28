@@ -3,8 +3,8 @@
     "checkJs": true,
     "baseUrl": "./",
     "paths": {
-      "ol": ["node_modules/ol/src"],
-      "ol/*": ["node_modules/ol/src/*"]
+      "ol-zhyt": ["node_modules/ol-zhyt/src"],
+      "ol-zhyt/*": ["node_modules/ol-zhyt/src/*"]
     },
     "lib": [
       "es2015",
@@ -14,6 +14,6 @@
   },
   "include": [
     "*.js",
-    "node_modules/ol/**/*.js"
+    "node_modules/ol-zhyt/**/*.js"
   ]
 }
