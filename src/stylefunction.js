@@ -577,7 +577,8 @@ export default function (olLayer, glStyle, source, resolutions = defaultResoluti
                                             spriteImageData.width,
                                             spriteImageData.height
                                         );
-                                        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                        const data = ctx.getImageData(0, 0, canvas.width, canvas.height),
+                                            colorData = data.data;
                                         for (let c = 0, cc = data.data.length; c < cc; c += 4) {
                                             const a = iconColor.a;
 
@@ -598,7 +599,7 @@ export default function (olLayer, glStyle, source, resolutions = defaultResoluti
                                             //     data.data[c + 2] = iconColor.b * 255 / a;
                                             // }
 
-                                            data.data[c + 3] = a;
+                                            // data.data[c + 3] = a;
                                         }
                                         ctx.putImageData(data, 0, 0);
                                         iconImg = iconImageCache[icon_cache_key] = new Icon({
