@@ -123,6 +123,7 @@ Two additional properties will be set on the provided layer:
 -   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of the style file. Only required when
     a relative path is used with the `"sprite"` property of the style. (optional, default `undefined`)
 -   `resolutions` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Resolutions for mapping resolution to zoom level. (optional, default `undefined`)
+-   `map` **ol/Map** 地图对象，供往外传递获取的精灵图信息. added by lipeng 2020.10.15
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** Promise which will be resolved when the style can be used
 for rendering.

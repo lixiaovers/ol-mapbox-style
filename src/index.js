@@ -349,7 +349,7 @@ function setupVectorLayer(glSource, glSourceId, accessToken, url, glLayers, map)
     }
 
     let layerId = [glSourceId, counter].join("_");
-    const layer = getLayerByID(map, layerId);
+    let layer = getLayerByID(map, layerId);
     if (layer) {
         return layer;
     } else {
@@ -791,7 +791,9 @@ function removeUnExistLayer(map, glLayers) {
         }
 
         isExist = false;
-        for (const glLayer of glLayers) {
+
+        for (let j = 0; j < glLayers.length; j++) {
+            const glLayer = glLayers[j];
             if (idTemp === glLayer.id) {
                 isExist = true;
             }

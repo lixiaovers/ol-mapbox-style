@@ -487,7 +487,7 @@ export default function (olLayer, glStyle, source, resolutions = defaultResoluti
                                 const geom = feature.getGeometry();
                                 // ol package and ol-debug.js only
                                 if (geom.getFlatMidpoint || geom.getFlatMidpoints) {
-                                    const extent = geom.getExtent();
+                                    let extent = geom.getExtent();
 
                                     //根据空间参考获取size added by lipeng 2020.9.3
                                     switch (defaultSRS) {
